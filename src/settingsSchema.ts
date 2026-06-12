@@ -212,6 +212,30 @@ export const settingsSchema = {
 			description: "Replaces usernames, display names and nicknames containing non-ASCII characters with the user's Discord ID. Reload Discord to fully apply after toggling.",
 			onChange: "settings:filtersConfigChanged",
 		}),
+		asciiOnlyProfiles: setting("checkbox", {
+			name: "ASCII-only profiles",
+			defaultValue: true,
+			description: "Blanks profile bios and pronouns that contain non-ASCII characters. Custom emotes in bios are first converted to text (see 'Disable emotes'). Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		asciiOnlyChannels: setting("checkbox", {
+			name: "ASCII-only channel names",
+			defaultValue: true,
+			description: "Replaces channel names containing non-ASCII characters with the channel's ID. Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		asciiOnlyCategories: setting("checkbox", {
+			name: "ASCII-only category names",
+			defaultValue: true,
+			description: "Replaces server category names containing non-ASCII characters with the category's ID. Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		asciiOnlyServers: setting("checkbox", {
+			name: "ASCII-only server names",
+			defaultValue: true,
+			description: "Replaces server (guild) names containing non-ASCII characters with the server's ID. Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
 		disableEmotes: setting("checkbox", {
 			name: "Disable emotes",
 			defaultValue: true,

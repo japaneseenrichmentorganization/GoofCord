@@ -9,14 +9,19 @@ function initKeybinds() {
 
 // src/windows/main/renderer/postVencord/contentFilters.ts
 var NON_ASCII = /[^\x20-\x7E]/;
+var GUILD_CATEGORY = 4;
 var AVATAR_STYLE_ID = "goofcord-hide-avatars";
 var EMOTE_STYLE_ID = "goofcord-text-emotes";
 var CUSTOM_EMOTE = /<a?:([^:<>]+):(\d+)>/g;
 var NUMERIC_ID = /^\d+$/;
-var asciiOnlyNames = false;
-var disableEmotes = false;
-var asciiOnlyMessages = false;
-var hideAvatars = false;
+var asciiOnlyNames = true;
+var asciiOnlyProfiles = true;
+var asciiOnlyChannels = true;
+var asciiOnlyCategories = true;
+var asciiOnlyServers = true;
+var disableEmotes = true;
+var asciiOnlyMessages = true;
+var hideAvatars = true;
 var emoteWhitelist = new Set;
 var avatarWhitelist = [];
 var storesPatched = false;
@@ -28,6 +33,10 @@ function sanitizeIdList(value) {
 }
 function loadFilterConfig() {
   asciiOnlyNames = GoofCord.getConfig("asciiOnlyNames");
+  asciiOnlyProfiles = GoofCord.getConfig("asciiOnlyProfiles");
+  asciiOnlyChannels = GoofCord.getConfig("asciiOnlyChannels");
+  asciiOnlyCategories = GoofCord.getConfig("asciiOnlyCategories");
+  asciiOnlyServers = GoofCord.getConfig("asciiOnlyServers");
   disableEmotes = GoofCord.getConfig("disableEmotes");
   asciiOnlyMessages = GoofCord.getConfig("asciiOnlyMessages");
   hideAvatars = GoofCord.getConfig("hideAvatars");
@@ -73,12 +82,69 @@ function sanitizeMember(member) {
     member.nick = member.userId ?? member.user?.id ?? "";
   return member;
 }
+function sanitizeChannel(channel) {
+  if (!channel || typeof channel.name !== "string" || !NON_ASCII.test(channel.name))
+    return channel;
+  const wanted = channel.type === GUILD_CATEGORY ? asciiOnlyCategories : asciiOnlyChannels;
+  if (wanted && channel.id)
+    channel.name = channel.id;
+  return channel;
+}
+function sanitizeGuild(guild) {
+  if (!asciiOnlyServers || !guild?.id)
+    return guild;
+  if (typeof guild.name === "string" && NON_ASCII.test(guild.name))
+    guild.name = guild.id;
+  return guild;
+}
+function sanitizeProfileText(text) {
+  const converted = disableEmotes ? emotesToText(text) : text;
+  return NON_ASCII.test(converted) ? "" : converted;
+}
+function sanitizeProfile(profile) {
+  if (!asciiOnlyProfiles || !profile)
+    return profile;
+  if (typeof profile.bio === "string")
+    profile.bio = sanitizeProfileText(profile.bio);
+  if (typeof profile.pronouns === "string")
+    profile.pronouns = sanitizeProfileText(profile.pronouns);
+  return profile;
+}
 function patchStoresIfNeeded() {
-  if (storesPatched || !asciiOnlyNames)
+  if (storesPatched || !(asciiOnlyNames || asciiOnlyProfiles || asciiOnlyChannels || asciiOnlyCategories || asciiOnlyServers))
     return;
   storesPatched = true;
   const UserStore = VC.Webpack.findStore("UserStore");
   const GuildMemberStore = VC.Webpack.findStore("GuildMemberStore");
+  const ChannelStore = VC.Webpack.findStore("ChannelStore");
+  const GuildStore = VC.Webpack.findStore("GuildStore");
+  const UserProfileStore = VC.Webpack.findStore("UserProfileStore");
+  if (ChannelStore?.getChannel) {
+    const origGetChannel = ChannelStore.getChannel;
+    ChannelStore.getChannel = function(...args) {
+      return sanitizeChannel(origGetChannel.apply(this, args));
+    };
+  }
+  if (GuildStore?.getGuild) {
+    const origGetGuild = GuildStore.getGuild;
+    GuildStore.getGuild = function(...args) {
+      return sanitizeGuild(origGetGuild.apply(this, args));
+    };
+  }
+  if (UserProfileStore) {
+    const origGetUserProfile = UserProfileStore.getUserProfile;
+    if (origGetUserProfile) {
+      UserProfileStore.getUserProfile = function(...args) {
+        return sanitizeProfile(origGetUserProfile.apply(this, args));
+      };
+    }
+    const origGetGuildMemberProfile = UserProfileStore.getGuildMemberProfile;
+    if (origGetGuildMemberProfile) {
+      UserProfileStore.getGuildMemberProfile = function(...args) {
+        return sanitizeProfile(origGetGuildMemberProfile.apply(this, args));
+      };
+    }
+  }
   if (UserStore) {
     const origGetUser = UserStore.getUser;
     UserStore.getUser = function(...args) {

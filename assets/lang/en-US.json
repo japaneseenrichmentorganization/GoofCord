@@ -180,5 +180,13 @@
   "opt-emoteWhitelist": "Emote whitelist",
   "opt-emoteWhitelist-desc": "Custom emote IDs (the number in :name:123) that stay visible as images while emotes are disabled. Numbers only.",
   "opt-avatarWhitelist": "Profile picture whitelist",
-  "opt-avatarWhitelist-desc": "Discord user IDs whose profile pictures stay visible while avatars are hidden. Numbers only. Note: users on a default (no custom) avatar cannot be whitelisted."
+  "opt-avatarWhitelist-desc": "Discord user IDs whose profile pictures stay visible while avatars are hidden. Numbers only. Note: users on a default (no custom) avatar cannot be whitelisted.",
+  "opt-asciiOnlyProfiles": "ASCII-only profiles",
+  "opt-asciiOnlyProfiles-desc": "Blanks profile bios and pronouns that contain non-ASCII characters. Custom emotes in bios are first converted to text (see 'Disable emotes'). Reload Discord to fully apply after toggling.",
+  "opt-asciiOnlyChannels": "ASCII-only channel names",
+  "opt-asciiOnlyChannels-desc": "Replaces channel names containing non-ASCII characters with the channel's ID. Reload Discord to fully apply after toggling.",
+  "opt-asciiOnlyCategories": "ASCII-only category names",
+  "opt-asciiOnlyCategories-desc": "Replaces server category names containing non-ASCII characters with the category's ID. Reload Discord to fully apply after toggling.",
+  "opt-asciiOnlyServers": "ASCII-only server names",
+  "opt-asciiOnlyServers-desc": "Replaces server (guild) names containing non-ASCII characters with the server's ID. Reload Discord to fully apply after toggling."
 }
