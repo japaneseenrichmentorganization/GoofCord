@@ -221,6 +221,7 @@ call; see the mouse/microphone section above for when you might tighten them.
 ## Developing
 
 ```
+bun run start      # dev build + launch
 bun run build      # generators + typecheck + bundle renderer assets
 bun run lint       # oxlint --type-aware
 bun run check      # typecheck only
