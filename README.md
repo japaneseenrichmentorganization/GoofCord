@@ -205,7 +205,7 @@ modulation riding on it, into what your mic captures and transmits.
 The unsettling part: your mouse movements are correlated with what you are
 doing. A motivated listener analyzing your outgoing audio could, in principle,
 pull a faint, structured artifact out of it that tracks your cursor -- a leak you
-never spoke.
+never spoke. 
 
 **How this patchset and your habits push back:**
 
@@ -224,12 +224,17 @@ never spoke.
 3. **Only raise the polling rate when you are actually gaming**, then drop it
    back down. Treat 1000-8000 Hz as a tool you pick up for the task and put away
    after -- not a thing left running while you are on a call.
+   This is a double edged sword, with further testing it appears that 1000hz 
+  give or take if you're talking will interfere with if they are trying to listen
+  It would be a much better solution to have a fully shielded mouse with mouse cable.
+  Also you have to remember the Linux kernel itself sometimes is on a tick rate
+  that is around 250-1000hz Also a fully shielded case would assist as well.
 
-4. Physically, if you can: keep the mouse and its cable away from the mic and
+5. Physically, if you can: keep the mouse and its cable away from the mic and
    mic cable, and use a shielded/balanced mic where possible. The filter is the
    last line; distance and shielding are the first.
 
-5. **Keep a messy desk.** This sounds like a joke. It is not. Coupling like this
+6. **Keep a messy desk.** This sounds like a joke. It is not. Coupling like this
    falls off fast with distance and is wrecked by anything that adds separation
    or breaks a clean, repeatable cable geometry. A cluttered desk -- cables
    routed chaotically, the mouse and mic buried among other objects, nothing
