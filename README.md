@@ -161,20 +161,74 @@ for anything you didn't ask for to reach you.
 
 ---
 
-## Build
+## Installation
 
-This fork builds with [Bun](https://bun.sh):
+This fork does not publish prebuilt binaries. The mitigations are compiled in
+(the Privacy tab and its defaults live in the app's settings schema), so you
+install it by building it yourself. You need [Bun](https://bun.sh) and `git`.
 
 ```
+git clone https://github.com/japaneseenrichmentorganization/GoofCord.git
+cd GoofCord
 bun install
+```
+
+**Run it directly** (builds a dev version and launches):
+
+```
+bun run start
+```
+
+**Build an installable app** for your platform (output lands in `dist/`):
+
+```
+bun run packageLinux      # or: packageWindows / packageMac
+```
+
+Then install/run the produced artifact like any normal desktop app.
+
+> Note on staying current: the renderer mitigations
+> (`assets/preVencord.js` / `assets/postVencord.js`) are fetched at runtime from
+> this repository's `main` branch by default, so once installed the client keeps
+> those parts up to date on its own. The compiled-in parts (the Privacy tab, the
+> default values) only change when you rebuild from a newer source.
+
+## Usage
+
+1. Open **Settings** (the GoofCord cog / tray menu) and go to the **Privacy**
+   tab. A warning banner explains that these are aggressive mitigations that will
+   change how Discord behaves on purpose.
+2. The aggressive options -- ASCII-only names, ASCII-only messages, disable
+   emotes, hide profile pictures, and the voice bandpass -- are **ON by default**.
+   Untick anything you do not want. Some toggles say "reload to fully apply";
+   `Ctrl+R` reloads Discord.
+
+**Letting specific people or emotes through the filters:**
+
+- Turn on Discord's **Developer Mode**: User Settings -> Advanced -> Developer
+  Mode. Then right-click a user and choose **Copy User ID** -- paste that number
+  into the **Profile picture whitelist** to keep that person's avatar visible.
+- For an **emote ID**, type a backslash before the emote in the message box
+  (e.g. `\:smile:`) and send it: the message reveals the raw `<:smile:123456>`
+  form. The trailing number is the emote ID -- paste it into the **Emote
+  whitelist** to keep that emote visible as an image.
+- Whitelists accept **numbers only**; non-numeric entries are ignored.
+
+**Tuning the voice bandpass:** the low/high cutoffs (default 80 Hz / 15000 Hz)
+are textfields under the bandpass toggle. Cutoff changes apply live to an active
+call; see the mouse/microphone section above for when you might tighten them.
+
+## Developing
+
+```
 bun run build      # generators + typecheck + bundle renderer assets
-bun run start      # dev build + launch
 bun run lint       # oxlint --type-aware
+bun run check      # typecheck only
 ```
 
 The Privacy features live in:
 
-- `src/windows/main/renderer/postVencord/contentFilters.ts` -- names, messages, emotes, avatars, whitelist
+- `src/windows/main/renderer/postVencord/contentFilters.ts` -- names, messages, emotes, avatars, and their whitelists
 - `src/windows/main/renderer/preVencord/audioBandpass.ts` -- mic + incoming voice bandpass
 - `src/settingsSchema.ts` -- the Privacy category and defaults
 - `src/migration.ts` -- repoints stored asset URLs to this fork
