@@ -51,6 +51,25 @@ for Latin "a"), an RTL-override that reverses how a name reads, or zalgo that
 blows out the layout -- all of it dies here. A raw ID is ugly. It is also
 impossible to forge into someone you trust.
 
+### ASCII-only profiles  -- default: ON
+Profile bios and pronouns containing any non-ASCII character are blanked. Custom
+emotes in a bio are converted to text first (see "Disable emotes"), so an
+all-emote bio survives as `:name:` text; anything still non-ASCII after that is
+wiped. Done at the data layer (`UserProfileStore`).
+
+**Why:** A bio is free text an attacker fully controls and you read while
+inspecting who someone is -- exactly where a homoglyph lookalike link or a
+zalgo/RTL payload wants to live.
+
+### ASCII-only channel, category, and server names  -- default: ON (three separate toggles)
+Channel names, server category names, and server (guild) names containing
+non-ASCII characters are replaced with their numeric ID. Each is its own
+checkbox. Enforced by wrapping `ChannelStore`/`GuildStore`.
+
+**Why:** Server and channel names are attacker-controlled strings you navigate
+by. A spoofed `#general` (with a homoglyph) or an RTL-mangled server name is a
+phishing/confusion surface; a raw ID can't pretend to be a channel you trust.
+
 ### ASCII-only messages  -- default: ON
 A message whose text contains any non-ASCII character is dropped entirely. It
 never renders -- not in live chat, loaded history, or search results. Runs
