@@ -218,31 +218,35 @@ export const settingsSchema = {
 			description: "Never shows emote images. Custom emotes are replaced with their name (e.g. :smile:), or the emote ID if the name contains non-ASCII characters. Also hides emote reactions under messages. Reload Discord to fully apply after toggling.",
 			onChange: "settings:filtersConfigChanged",
 		}),
+		emoteWhitelist: setting("list", {
+			name: "Emote whitelist",
+			defaultValue: [],
+			description: "Custom emote IDs (the number in :name:123) that stay visible as images while emotes are disabled. Numbers only.",
+			onChange: "settings:filtersConfigChanged",
+			showAfter: {
+				key: "disableEmotes",
+				condition: (value) => value === true,
+			},
+		}),
 		asciiOnlyMessages: setting("checkbox", {
 			name: "ASCII-only messages",
 			defaultValue: true,
-			description: "Hides messages whose text contains non-ASCII characters. Runs after 'Emotes as text', so converted emotes do not hide a message. Reload Discord to fully apply after toggling.",
+			description: "Hides messages whose text contains non-ASCII characters. Runs after 'Disable emotes', so converted emotes do not hide a message. Reload Discord to fully apply after toggling.",
 			onChange: "settings:filtersConfigChanged",
 		}),
 		hideAvatars: setting("checkbox", {
 			name: "Hide profile pictures",
-			defaultValue: false,
-			description: "Hides user avatars everywhere in Discord.",
+			defaultValue: true,
+			description: "Hides all user avatars everywhere in Discord, except for the whitelisted users below.",
 			onChange: "settings:filtersConfigChanged",
 		}),
-		whitelistMode: setting("checkbox", {
-			name: "Block everyone (whitelist mode)",
-			defaultValue: false,
-			description: "Hides messages from everyone except whitelisted users. Your own messages are always shown. Reload Discord to fully apply after toggling.",
-			onChange: "settings:filtersConfigChanged",
-		}),
-		userWhitelist: setting("list", {
-			name: "User whitelist",
+		avatarWhitelist: setting("list", {
+			name: "Profile picture whitelist",
 			defaultValue: [],
-			description: "Discord user IDs whose messages stay visible while whitelist mode is active.",
+			description: "Discord user IDs whose profile pictures stay visible while avatars are hidden. Numbers only. Note: users on a default (no custom) avatar cannot be whitelisted.",
 			onChange: "settings:filtersConfigChanged",
 			showAfter: {
-				key: "whitelistMode",
+				key: "hideAvatars",
 				condition: (value) => value === true,
 			},
 		}),

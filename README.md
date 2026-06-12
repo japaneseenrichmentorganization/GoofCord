@@ -68,26 +68,28 @@ too. This is pure string handling -- no Discord internals are called on message
 content (an earlier "convert emoji to its real name" approach was removed
 precisely because it ran engine code against hostile input on every message).
 
+You can keep specific emotes if you choose: put their numeric **emote IDs** in
+the **Emote whitelist** and those stay visible as images while everything else
+is reduced to text. Numbers only.
+
 **Why:** Emotes are remote images fetched from a CDN -- a tracking beacon and an
 image-decoder attack surface in one. Reducing them to text removes the image
-fetch and the parser entirely while still telling you what was sent.
+fetch and the parser entirely while still telling you what was sent. The
+whitelist lets a handful of trusted emotes through without opening the door to
+all of them.
 
-### Hide profile pictures  -- default: OFF
-Hides all user avatars everywhere via injected CSS.
+### Hide profile pictures  -- default: ON
+Hides all user avatars everywhere via injected CSS, *except* for users you
+explicitly trust. Put their numeric **user IDs** in the **Profile picture
+whitelist** and only their avatars are shown; everyone else stays blank.
+(IDs are matched against the avatar's CDN URL, so a user on a default avatar with
+no custom image cannot be whitelisted.)
 
-**Why:** Avatars are another stream of attacker-supplied images decoded by your
-client. Defense-in-depth against malicious image payloads and load-time
-tracking. Off by default because for most people the risk/annoyance trade isn't
-worth it -- but it's one click away when you want the blast doors down.
-
-### Block everyone (whitelist mode)  -- default: OFF
-When on, messages and typing indicators from everyone except whitelisted user
-IDs are dropped. Your own messages always show. IDs go in the **User whitelist**
-list.
-
-**Why:** The strongest mitigation is not seeing untrusted input at all. This is
-for when you only want the handful of people who matter, and the rest of the
-world can shout into a void.
+**Why:** Avatars are a stream of attacker-supplied images decoded by your client
+-- a malicious-image-payload and load-time-tracking surface. On by default
+because it is the same class of risk as emotes. The whitelist means the people
+who matter still have a face, while the rest of the world does not get to send
+your client an image at all.
 
 ### Voice bandpass filter  -- default: ON, 80 Hz - 15 kHz, adjustable
 Both your microphone *and* incoming voice audio are routed through a

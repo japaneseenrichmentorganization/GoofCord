@@ -1,31 +1,40 @@
 // Content filters:
 // - ASCII-only names: names containing non-ASCII characters are replaced with the user's Discord ID
-// - Hide profile pictures
-// - Whitelist mode: hide messages from everyone except whitelisted user IDs
+// - ASCII-only messages: hide messages whose text contains non-ASCII characters
+// - Disable emotes: hide emote images, with an optional per-emote-ID whitelist
+// - Hide profile pictures: hide all avatars, with an optional per-user-ID whitelist
 
 const NON_ASCII = /[^\x20-\x7E]/;
 const AVATAR_STYLE_ID = "goofcord-hide-avatars";
 const EMOTE_STYLE_ID = "goofcord-text-emotes";
 // <:name:123> and <a:name:123> custom emotes -> capture name and id separately
 const CUSTOM_EMOTE = /<a?:([^:<>]+):(\d+)>/g;
+// Snowflake IDs are numeric. Whitelist entries are injected into CSS selectors,
+// so we hard-restrict them to digits to make CSS injection impossible.
+const NUMERIC_ID = /^\d+$/;
 
 let asciiOnlyNames = false;
 let disableEmotes = false;
 let asciiOnlyMessages = false;
 let hideAvatars = false;
-let whitelistMode = false;
-let userWhitelist: string[] = [];
+let emoteWhitelist = new Set<string>();
+let avatarWhitelist: string[] = [];
 
 let storesPatched = false;
 let dispatchPatched = false;
+
+function sanitizeIdList(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return value.filter((v): v is string => typeof v === "string" && NUMERIC_ID.test(v));
+}
 
 function loadFilterConfig() {
 	asciiOnlyNames = GoofCord.getConfig("asciiOnlyNames");
 	disableEmotes = GoofCord.getConfig("disableEmotes");
 	asciiOnlyMessages = GoofCord.getConfig("asciiOnlyMessages");
 	hideAvatars = GoofCord.getConfig("hideAvatars");
-	whitelistMode = GoofCord.getConfig("whitelistMode");
-	userWhitelist = GoofCord.getConfig("userWhitelist") ?? [];
+	emoteWhitelist = new Set(sanitizeIdList(GoofCord.getConfig("emoteWhitelist")));
+	avatarWhitelist = sanitizeIdList(GoofCord.getConfig("avatarWhitelist"));
 }
 
 export function initContentFilters() {
@@ -48,9 +57,13 @@ export function initContentFilters() {
 // --- Disable emotes ---------------------------------------------
 
 // Replace a custom emote token with its name (if plain ASCII) or its numeric ID.
+// Whitelisted emote IDs keep their original token so Discord renders the image.
 // Operates purely on the message string; no Discord internals are touched.
 function emotesToText(content: string): string {
-	return content.replace(CUSTOM_EMOTE, (_match, name: string, id: string) => (NON_ASCII.test(name) ? id : `:${name}:`));
+	return content.replace(CUSTOM_EMOTE, (match, name: string, id: string) => {
+		if (emoteWhitelist.has(id)) return match;
+		return NON_ASCII.test(name) ? id : `:${name}:`;
+	});
 }
 
 // --- ASCII-only names ---------------------------------------------
@@ -113,15 +126,9 @@ function patchStoresIfNeeded() {
 	}
 }
 
-// --- Whitelist mode + message sanitization ---------------------------------------------
+// --- Message sanitization ---------------------------------------------
 
-function isUserAllowed(userId: string | undefined): boolean {
-	if (!whitelistMode) return true;
-	if (!userId) return false;
-	if (userId === (Common.UserStore as any)?.getCurrentUser?.()?.id) return true;
-	return userWhitelist.includes(userId);
-}
-
+// Returns false if the message should be hidden (non-ASCII content).
 function processMessage(msg: any): boolean {
 	if (!msg) return true;
 	sanitizeUser(msg.author);
@@ -129,11 +136,11 @@ function processMessage(msg: any): boolean {
 	for (const u of msg.mentions ?? []) sanitizeUser(u);
 	if (disableEmotes && typeof msg.content === "string") msg.content = emotesToText(msg.content);
 	if (asciiOnlyMessages && typeof msg.content === "string" && NON_ASCII.test(msg.content)) return false;
-	return isUserAllowed(msg.author?.id);
+	return true;
 }
 
 function patchDispatchIfNeeded() {
-	if (dispatchPatched || (!whitelistMode && !asciiOnlyNames && !asciiOnlyMessages && !disableEmotes)) return;
+	if (dispatchPatched || (!asciiOnlyNames && !asciiOnlyMessages && !disableEmotes)) return;
 	dispatchPatched = true;
 
 	const originalDispatch = Common.FluxDispatcher.dispatch;
@@ -155,9 +162,6 @@ function handleDispatch(dispatch: any): boolean {
 		case "MESSAGE_UPDATE":
 			return processMessage(dispatch.message);
 
-		case "TYPING_START":
-			return isUserAllowed(dispatch.userId);
-
 		case "LOAD_MESSAGES_SUCCESS":
 			if (Array.isArray(dispatch.messages)) {
 				dispatch.messages = dispatch.messages.filter((msg: any) => processMessage(msg));
@@ -174,23 +178,44 @@ function handleDispatch(dispatch: any): boolean {
 	return true;
 }
 
-// --- Hide profile pictures ---------------------------------------------
+function setStyle(id: string, enabled: boolean, css: string) {
+	let style = document.getElementById(id);
 
-function applyAvatarStyle() {
-	let style = document.getElementById(AVATAR_STYLE_ID);
-
-	if (!hideAvatars) {
+	if (!enabled) {
 		style?.remove();
 		return;
 	}
 
 	if (!style) {
 		style = document.createElement("style");
-		style.id = AVATAR_STYLE_ID;
+		style.id = id;
 		document.head.appendChild(style);
 	}
 
-	style.textContent = `
+	style.textContent = css;
+}
+
+// --- Hide profile pictures ---------------------------------------------
+
+function applyAvatarStyle() {
+	// Avatar image URLs embed the user ID (.../avatars/<userId>/... and
+	// .../guilds/<guildId>/users/<userId>/...), so whitelisting is done by
+	// re-showing those specific URLs. IDs are digits-only (see NUMERIC_ID),
+	// so this cannot be used to inject arbitrary CSS.
+	const overrides = avatarWhitelist
+		.map(
+			(id) => `
+		img[src*="/avatars/${id}/"],
+		img[src*="/users/${id}/avatars/"] {
+			visibility: visible !important;
+		}`,
+		)
+		.join("\n");
+
+	setStyle(
+		AVATAR_STYLE_ID,
+		hideAvatars,
+		`
 		img[class*="avatar"],
 		svg[class*="avatar"] foreignObject img,
 		img[src*="cdn.discordapp.com/avatars/"],
@@ -199,30 +224,34 @@ function applyAvatarStyle() {
 		div[class*="avatar"][style*="background-image"] {
 			visibility: hidden !important;
 		}
-	`;
+		${overrides}
+	`,
+	);
 }
 
 // Safety net for emote images the data-level conversion cannot reach
 // (already-rendered messages, embeds) and emote reactions under messages.
+// Whitelisted emote IDs are re-shown by their CDN URL (.../emojis/<id>.*).
 function applyEmoteStyle() {
-	let style = document.getElementById(EMOTE_STYLE_ID);
+	const overrides = [...emoteWhitelist]
+		.map(
+			(id) => `
+		img[src*="/emojis/${id}."] {
+			display: revert !important;
+		}`,
+		)
+		.join("\n");
 
-	if (!disableEmotes) {
-		style?.remove();
-		return;
-	}
-
-	if (!style) {
-		style = document.createElement("style");
-		style.id = EMOTE_STYLE_ID;
-		document.head.appendChild(style);
-	}
-
-	style.textContent = `
+	setStyle(
+		EMOTE_STYLE_ID,
+		disableEmotes,
+		`
 		img[class*="emoji"],
 		img[src*="cdn.discordapp.com/emojis/"],
 		div[class*="reactions"] {
 			display: none !important;
 		}
-	`;
+		${overrides}
+	`,
+	);
 }

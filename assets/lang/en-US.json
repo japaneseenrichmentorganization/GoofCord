@@ -165,11 +165,7 @@
   "opt-asciiOnlyNames": "ASCII-only names",
   "opt-asciiOnlyNames-desc": "Replaces usernames, display names and nicknames containing non-ASCII characters with the user's Discord ID. Reload Discord to fully apply after toggling.",
   "opt-hideAvatars": "Hide profile pictures",
-  "opt-hideAvatars-desc": "Hides user avatars everywhere in Discord.",
-  "opt-whitelistMode": "Block everyone (whitelist mode)",
-  "opt-whitelistMode-desc": "Hides messages from everyone except whitelisted users. Your own messages are always shown. Reload Discord to fully apply after toggling.",
-  "opt-userWhitelist": "User whitelist",
-  "opt-userWhitelist-desc": "Discord user IDs whose messages stay visible while whitelist mode is active.",
+  "opt-hideAvatars-desc": "Hides all user avatars everywhere in Discord, except for the whitelisted users below.",
   "opt-audioBandpass": "Voice bandpass filter",
   "opt-audioBandpass-desc": "Filters your microphone and incoming voice audio to the frequency band below. Takes effect on the next voice connection when toggled; cutoff changes apply live.",
   "opt-bandpassLowHz": "Bandpass low cutoff (Hz)",
@@ -178,7 +174,11 @@
   "opt-bandpassHighHz-desc": "Frequencies above this are attenuated.",
   "category-privacy": "Privacy",
   "opt-asciiOnlyMessages": "ASCII-only messages",
-  "opt-asciiOnlyMessages-desc": "Hides messages whose text contains non-ASCII characters. Runs after 'Emotes as text', so converted emotes do not hide a message. Reload Discord to fully apply after toggling.",
+  "opt-asciiOnlyMessages-desc": "Hides messages whose text contains non-ASCII characters. Runs after 'Disable emotes', so converted emotes do not hide a message. Reload Discord to fully apply after toggling.",
   "opt-disableEmotes": "Disable emotes",
-  "opt-disableEmotes-desc": "Never shows emote images. Custom emotes are replaced with their name (e.g. :smile:), or the emote ID if the name contains non-ASCII characters. Also hides emote reactions under messages. Reload Discord to fully apply after toggling."
+  "opt-disableEmotes-desc": "Never shows emote images. Custom emotes are replaced with their name (e.g. :smile:), or the emote ID if the name contains non-ASCII characters. Also hides emote reactions under messages. Reload Discord to fully apply after toggling.",
+  "opt-emoteWhitelist": "Emote whitelist",
+  "opt-emoteWhitelist-desc": "Custom emote IDs (the number in :name:123) that stay visible as images while emotes are disabled. Numbers only.",
+  "opt-avatarWhitelist": "Profile picture whitelist",
+  "opt-avatarWhitelist-desc": "Discord user IDs whose profile pictures stay visible while avatars are hidden. Numbers only. Note: users on a default (no custom) avatar cannot be whitelisted."
 }

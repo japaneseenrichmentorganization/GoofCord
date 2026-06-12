@@ -12,21 +12,27 @@ var NON_ASCII = /[^\x20-\x7E]/;
 var AVATAR_STYLE_ID = "goofcord-hide-avatars";
 var EMOTE_STYLE_ID = "goofcord-text-emotes";
 var CUSTOM_EMOTE = /<a?:([^:<>]+):(\d+)>/g;
+var NUMERIC_ID = /^\d+$/;
 var asciiOnlyNames = false;
 var disableEmotes = false;
 var asciiOnlyMessages = false;
 var hideAvatars = false;
-var whitelistMode = false;
-var userWhitelist = [];
+var emoteWhitelist = new Set;
+var avatarWhitelist = [];
 var storesPatched = false;
 var dispatchPatched = false;
+function sanitizeIdList(value) {
+  if (!Array.isArray(value))
+    return [];
+  return value.filter((v) => typeof v === "string" && NUMERIC_ID.test(v));
+}
 function loadFilterConfig() {
   asciiOnlyNames = GoofCord.getConfig("asciiOnlyNames");
   disableEmotes = GoofCord.getConfig("disableEmotes");
   asciiOnlyMessages = GoofCord.getConfig("asciiOnlyMessages");
   hideAvatars = GoofCord.getConfig("hideAvatars");
-  whitelistMode = GoofCord.getConfig("whitelistMode");
-  userWhitelist = GoofCord.getConfig("userWhitelist") ?? [];
+  emoteWhitelist = new Set(sanitizeIdList(GoofCord.getConfig("emoteWhitelist")));
+  avatarWhitelist = sanitizeIdList(GoofCord.getConfig("avatarWhitelist"));
 }
 function initContentFilters() {
   loadFilterConfig();
@@ -43,7 +49,11 @@ function initContentFilters() {
   patchDispatchIfNeeded();
 }
 function emotesToText(content) {
-  return content.replace(CUSTOM_EMOTE, (_match, name, id) => NON_ASCII.test(name) ? id : `:${name}:`);
+  return content.replace(CUSTOM_EMOTE, (match, name, id) => {
+    if (emoteWhitelist.has(id))
+      return match;
+    return NON_ASCII.test(name) ? id : `:${name}:`;
+  });
 }
 function sanitizeUser(user) {
   if (!asciiOnlyNames || !user?.id)
@@ -102,15 +112,6 @@ function patchStoresIfNeeded() {
     }
   }
 }
-function isUserAllowed(userId) {
-  if (!whitelistMode)
-    return true;
-  if (!userId)
-    return false;
-  if (userId === Common.UserStore?.getCurrentUser?.()?.id)
-    return true;
-  return userWhitelist.includes(userId);
-}
 function processMessage(msg) {
   if (!msg)
     return true;
@@ -123,10 +124,10 @@ function processMessage(msg) {
     msg.content = emotesToText(msg.content);
   if (asciiOnlyMessages && typeof msg.content === "string" && NON_ASCII.test(msg.content))
     return false;
-  return isUserAllowed(msg.author?.id);
+  return true;
 }
 function patchDispatchIfNeeded() {
-  if (dispatchPatched || !whitelistMode && !asciiOnlyNames && !asciiOnlyMessages && !disableEmotes)
+  if (dispatchPatched || !asciiOnlyNames && !asciiOnlyMessages && !disableEmotes)
     return;
   dispatchPatched = true;
   const originalDispatch = Common.FluxDispatcher.dispatch;
@@ -145,8 +146,6 @@ function handleDispatch(dispatch) {
     case "MESSAGE_CREATE":
     case "MESSAGE_UPDATE":
       return processMessage(dispatch.message);
-    case "TYPING_START":
-      return isUserAllowed(dispatch.userId);
     case "LOAD_MESSAGES_SUCCESS":
       if (Array.isArray(dispatch.messages)) {
         dispatch.messages = dispatch.messages.filter((msg) => processMessage(msg));
@@ -161,18 +160,27 @@ function handleDispatch(dispatch) {
   }
   return true;
 }
-function applyAvatarStyle() {
-  let style = document.getElementById(AVATAR_STYLE_ID);
-  if (!hideAvatars) {
+function setStyle(id, enabled, css) {
+  let style = document.getElementById(id);
+  if (!enabled) {
     style?.remove();
     return;
   }
   if (!style) {
     style = document.createElement("style");
-    style.id = AVATAR_STYLE_ID;
+    style.id = id;
     document.head.appendChild(style);
   }
-  style.textContent = `
+  style.textContent = css;
+}
+function applyAvatarStyle() {
+  const overrides = avatarWhitelist.map((id) => `
+		img[src*="/avatars/${id}/"],
+		img[src*="/users/${id}/avatars/"] {
+			visibility: visible !important;
+		}`).join(`
+`);
+  setStyle(AVATAR_STYLE_ID, hideAvatars, `
 		img[class*="avatar"],
 		svg[class*="avatar"] foreignObject img,
 		img[src*="cdn.discordapp.com/avatars/"],
@@ -181,26 +189,23 @@ function applyAvatarStyle() {
 		div[class*="avatar"][style*="background-image"] {
 			visibility: hidden !important;
 		}
-	`;
+		${overrides}
+	`);
 }
 function applyEmoteStyle() {
-  let style = document.getElementById(EMOTE_STYLE_ID);
-  if (!disableEmotes) {
-    style?.remove();
-    return;
-  }
-  if (!style) {
-    style = document.createElement("style");
-    style.id = EMOTE_STYLE_ID;
-    document.head.appendChild(style);
-  }
-  style.textContent = `
+  const overrides = [...emoteWhitelist].map((id) => `
+		img[src*="/emojis/${id}."] {
+			display: revert !important;
+		}`).join(`
+`);
+  setStyle(EMOTE_STYLE_ID, disableEmotes, `
 		img[class*="emoji"],
 		img[src*="cdn.discordapp.com/emojis/"],
 		div[class*="reactions"] {
 			display: none !important;
 		}
-	`;
+		${overrides}
+	`);
 }
 
 // src/windows/main/renderer/postVencord/dynamicIcon.ts
