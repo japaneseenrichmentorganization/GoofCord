@@ -121,10 +121,6 @@ below). Clamping the band keeps voice intelligible while throwing away the parts
 of the spectrum an attacker would actually want.
 
 ---
-## A Advanced Persistant Threat
-
-Can and does utilize microphones and headset to infil and exfil data. Along with being able to exploit a machine utilizing this method. The method below is hypothetical but has been show to show where a persons mouse is. But I could also see it being utilized for other puposes. 
-
 
 ## A threat vector I think about: your mouse, through your microphone
 
