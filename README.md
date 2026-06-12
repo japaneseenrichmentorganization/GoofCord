@@ -36,6 +36,40 @@ decorative glyph in the app's own UI, badges, and English strings was replaced
 with an ASCII equivalent. The client that guards you does not get to be a
 hypocrite.
 
+**The real danger is the renderer, not the reader.** The point is not only that
+a lookalike name might *fool* you -- it is that the moment a hostile string is
+handed to the text-rendering path, the **font and text-shaping engine itself is
+the exploit surface.** Font shaping, complex-script layout (BiDi, Indic,
+Arabic), grapheme clustering, and emoji/glyph handling are large, intricate
+native code paths with a long history of memory-corruption bugs. Feeding them
+crafted Unicode -- malformed combining sequences, pathological zalgo stacks,
+adversarial emoji ZWJ chains, exotic codepoints -- can corrupt memory and lead
+to code execution *just by drawing the text on screen.* You do not have to be
+tricked. You only have to look.
+
+**This is universal -- it is not a Discord problem.** Any place an attacker-
+controlled name is passed to a text renderer is the same surface, and almost all
+of them accept arbitrary Unicode:
+
+- **Wi-Fi network names (SSIDs)** in the network picker.
+- **Computer / host names and network shares.**
+- **Bluetooth device names** in discovery and pairing dialogs.
+- **File and folder names** -- a filename alone, merely *listed* by a file
+  manager, can hit the rendering bug; nothing has to be opened.
+- **Printer names, AirPlay/Chromecast targets, account display names, calendar
+  invites, QR-decoded text, media tags** -- the list does not end.
+
+The mitigation is the same everywhere: **wherever a client or OS lets you,
+strip or refuse non-ASCII in these names and show the raw identifier (the BSSID,
+the MAC, the IP, the ID) instead** -- so the vulnerable shaping code is never
+fed hostile input in the first place. GoofCord can only enforce this inside
+Discord. The rest of your machine is yours to harden the same way.
+
+> I am currently building patchsets for all of these -- SSID display, hostnames,
+> Bluetooth names, filename rendering, and the rest -- to the best of my
+> abilities. This fork is the first of them, not the last. ASCII everywhere I can
+> reach, one surface at a time.
+
 ---
 
 ## Mitigations (the Privacy tab)
@@ -116,9 +150,42 @@ highpass + lowpass biquad chain. Cutoffs are adjustable in Settings and apply
 live to active calls.
 
 **Why:** Human speech lives roughly in this band. Energy outside it is, at best,
-useless, and at worst a carrier for side-channel content (see the threat vector
-below). Clamping the band keeps voice intelligible while throwing away the parts
-of the spectrum an attacker would actually want.
+useless, and at worst a carrier for side-channel content. Clamping the band
+keeps voice intelligible while throwing away the parts of the spectrum an
+attacker would actually want.
+
+**The APT angle -- acoustic infiltration and exfiltration.** Advanced
+Persistent Threats have shown (in research and in the wild) that sound is a
+usable, covert network -- one that crosses air gaps no firewall can see.
+Near-ultrasonic and ultrasonic tones (roughly 17 kHz and up) are inaudible to
+most adults but carry data just fine between ordinary consumer hardware. Three
+facts make this worse than it first sounds:
+
+- **Almost everything around you has a speaker** -- your monitor, your phone,
+  your headset, laptops, smart-home and embedded gadgets, other PCs. Each one is
+  a potential transmitter that can emit tones you will never hear.
+- **A speaker is also a (poor) microphone.** A loudspeaker is just a diaphragm
+  on a coil; drive it and it makes sound, vibrate it with sound and it generates
+  a small signal. Reversible. So devices you think of as output-only -- a
+  monitor's speakers, a phone resting face-down, an embedded panel -- can be
+  coerced into *listening*. Infiltration (data sent *to* a machine) and
+  exfiltration (data pulled *off* it) can both ride this channel, in either
+  direction, between devices that share no network at all.
+- **Discord is a live, full-duplex audio pipe to the open internet.** That makes
+  your client an ideal courier: malware on a nearby air-gapped or embedded device
+  chirps ultrasonically, your mic picks it up, and Discord faithfully streams it
+  out to whoever is on the call -- or the reverse, an incoming stream carries
+  inaudible tones your speakers replay into the room to command a device sitting
+  next to you. Your headset becomes the last hop of someone else's covert link.
+
+The bandpass is the cut that closes this door. Voice does not need anything
+above ~15 kHz, so the default high cutoff throws the entire near-ultrasonic and
+ultrasonic band away on **both** legs -- your outgoing mic feed and the incoming
+audio your speakers play -- before either can carry a hidden payload past you.
+If you want to be stricter, drop the high cutoff further (12 kHz is still
+perfectly intelligible for speech); it costs you nothing and starves the channel
+even more. This is also why the filter is applied to incoming audio and not just
+your mic: a courier you only guard in one direction is not guarded at all.
 
 ---
 
