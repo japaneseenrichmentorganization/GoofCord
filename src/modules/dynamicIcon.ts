@@ -28,7 +28,7 @@ const BADGE_GENERATOR_CODE = `
 			return canvas;
 		}
 
-		const text = num > 99 ? '∞' : num.toString();
+		const text = num > 99 ? '99+' : num.toString();
 		
 		// White text
 		ctx.fillStyle = 'white';
@@ -36,8 +36,8 @@ const BADGE_GENERATOR_CODE = `
 		ctx.textBaseline = 'middle';
 
 		let fontSize;
-		if (text === '∞') {
-			fontSize = size * 1.0; 
+		if (text === '99+') {
+			fontSize = size * 0.55;
 		} else if (text.length > 1) { // Two digits
 			fontSize = size * 0.7;
 		} else { // Single digit

@@ -106,6 +106,11 @@ function SettingsPanel({ name, active, revealed }: SettingsPanelProps): JSX.Elem
 
 	return (
 		<div id={toId(name)} class={`content-panel${active ? " active" : ""}`} role="tabpanel">
+			{name === "Privacy" && (
+				<div class="message warning">
+					<p>{i("settings-privacy-warning")}</p>
+				</div>
+			)}
 			<form class="settingsContainer">
 				{settings.map(([key, entry]) => (
 					<SettingField key={key} settingKey={key as ConfigKey} entry={entry as SettingEntry} forceVisible={revealed} />
@@ -181,11 +186,11 @@ function useEasterEgg(tabCount: number) {
 		tabs.forEach((tab, j) => {
 			setTimeout(() => {
 				const rect = tab.getBoundingClientRect();
-				showConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, "🎉", 15);
+				showConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, "*", 15);
 			}, j * 150);
 		});
 
-		const letters = ["🇬", "🇴", "🇴", "🇫", "🇨", "🇴", "🇷", "🇩"];
+		const letters = ["G", "O", "O", "F", "C", "O", "R", "D"];
 		const startDelay = tabs.length * 150;
 		letters.forEach((letter, j) => {
 			setTimeout(
@@ -227,7 +232,7 @@ function useEasterEgg(tabCount: number) {
 			if (state.count === 3) {
 				const target = e.currentTarget as HTMLElement;
 				const rect = target.getBoundingClientRect();
-				showConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, "👁️", 25);
+				showConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, "o", 25);
 				state.count = 0;
 				return true;
 			}

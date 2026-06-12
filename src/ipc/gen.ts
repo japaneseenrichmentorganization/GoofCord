@@ -13,7 +13,7 @@ import { isVenbindLoaded as ___modules_native_venbind_isVenbindLoaded, setKeybin
 import { getDisplayVersion as ___utils_getDisplayVersion, getVersion as ___utils_getVersion, isEncryptionAvailable as ___utils_isEncryptionAvailable, saveFileToGCFolder as ___utils_saveFileToGCFolder } from "../utils";
 import { createQuickCssWindow as ___windows_main_quickCssFix_createQuickCssWindow } from "../windows/main/quickCssFix";
 import { deleteCloud as ___windows_settings_cloud_cloud_deleteCloud, loadCloud as ___windows_settings_cloud_cloud_loadCloud, saveCloud as ___windows_settings_cloud_cloud_saveCloud } from "../windows/settings/cloud/cloud";
-import { createSettingsWindow as ___windows_settings_settings_createSettingsWindow, hotreloadLocale as ___windows_settings_settings_hotreloadLocale, invidiousConfigChanged as ___windows_settings_settings_invidiousConfigChanged, openFolder as ___windows_settings_settings_openFolder, reloadWindow as ___windows_settings_settings_reloadWindow } from "../windows/settings/settings";
+import { createSettingsWindow as ___windows_settings_settings_createSettingsWindow, filtersConfigChanged as ___windows_settings_settings_filtersConfigChanged, hotreloadLocale as ___windows_settings_settings_hotreloadLocale, invidiousConfigChanged as ___windows_settings_settings_invidiousConfigChanged, openFolder as ___windows_settings_settings_openFolder, reloadWindow as ___windows_settings_settings_reloadWindow } from "../windows/settings/settings";
 
 export function registerAllHandlers() {
   ipcMain.handle("arrpc:initArrpc", async (event) => { return await ___modules_arrpc_arrpc_initArrpc(); });
@@ -31,6 +31,7 @@ export function registerAllHandlers() {
   ipcMain.handle("patchcord:stopPatchcord", async (event) => { return await ___modules_native_patchcord_stopPatchcord(); });
   ipcMain.handle("quickCssFix:createQuickCssWindow", async (event) => { return await ___windows_main_quickCssFix_createQuickCssWindow(); });
   ipcMain.handle("settings:createSettingsWindow", async (event) => { return await ___windows_settings_settings_createSettingsWindow(); });
+  ipcMain.handle("settings:filtersConfigChanged", async (event) => { return await ___windows_settings_settings_filtersConfigChanged(); });
   ipcMain.handle("settings:hotreloadLocale", async (event) => { return await ___windows_settings_settings_hotreloadLocale(); });
   ipcMain.handle("settings:invidiousConfigChanged", async (event) => { return await ___windows_settings_settings_invidiousConfigChanged(); });
   ipcMain.handle("settings:openFolder", async (event, folder) => { return await ___windows_settings_settings_openFolder(folder); });

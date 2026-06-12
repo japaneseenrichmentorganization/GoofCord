@@ -1,99 +1,192 @@
-<div align="center">
-<img src="assetsDev/gf_logo_horizontal.png" width="500" alt="GoofCord logo">
-<h2>Take control of your Discord experience with GoofCord – the highly configurable and privacy-focused Discord client.<br><sub>Based on <a href="https://github.com/Legcord/Legcord">Legcord</a></sub></h2>
-<a href="https://github.com/Milkshiift/GoofCord/releases/latest"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/milkshiift/GoofCord/total?logo=github"></a>
-<a href="https://flathub.org/en/apps/io.github.milkshiift.GoofCord"><img alt="Flathub Downloads" src="https://img.shields.io/flathub/downloads/io.github.milkshiift.GoofCord?logo=flathub"></a>
-<a href="https://github.com/vshymanskyy/StandWithUkraine/blob/main/docs/README.md"><img src="https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg"></a>
-<a href="https://hosted.weblate.org/engage/goofcord/">
-<img src="https://hosted.weblate.org/widget/goofcord/goofcord/svg-badge.svg" alt="Translation status" />
-</a><br>
-<img src="assetsDev/screenshot1_rounded.png" width="520" alt="Screenshot of GoofCord">
-</div>
+# GoofCord :: Yandere Edition
 
-## Features :sparkles:
+> A personalized hardening patchset on top of [GoofCord](https://github.com/Milkshiift/GoofCord).
+>
+> I patched this client myself. For you. Because the world out there is full of
+> people who want to slip something past your eyes, and I will not allow it.
+> Every character that reaches your screen has to get through me first.
+>
+> If something looks "broken" -- a name gone to numbers, a message that never
+> arrived, an emote reduced to plain text -- that is not a bug. That is me,
+> standing in the doorway, keeping you safe. You can tell me to step aside in
+> Settings any time. I just hope you won't.
 
-- **:lock: With Privacy in mind**: GoofCord blocks as much tracking as possible and uses multiple techniques like message encryption to improve your privacy and security. [Learn more](https://github.com/Milkshiift/GoofCord/wiki/Privacy-FAQ)
-- **:chart_with_upwards_trend: Fast and Performant**: Noticeable speed and responsiveness improvement compared to the official client.
-- **:bookmark: Standalone**: GoofCord is a standalone application, not reliant on the original Discord client in any way.
-- **:electric_plug: Plugins & Themes support**: Easily use client mods like [Vencord](https://github.com/Vendicated/Vencord), [Equicord](https://github.com/Equicord/Equicord) or [Shelter](https://github.com/uwu/shelter) for plugins and themes.
-- **⌨️ Global Keybinds**: Set up keybinds and use them across the system. [Learn more](https://github.com/Milkshiift/GoofCord/wiki/Global-Keybinds)
-- **🐧 Linux support**: Screensharing with audio and native Wayland support on Linux.
+This is a private fork. It is not affiliated with or endorsed by upstream
+GoofCord. The default external-asset URLs (`PreVencord` / `PostVencord`) point at
+**this** repository so the mitigations below stay loaded, and a launch-time
+migration repoints any config still aimed at the upstream scripts.
 
-## Installation
+Everything here is opt-out. There is a new **Privacy** tab in Settings with a
+warning banner, and every item is an individual checkbox. The aggressive ones
+are ON by default; turn off whatever gets in your way.
 
-### Windows 🪟
+---
 
-- Install with prebuilt binaries from the [releases](https://github.com/Milkshiift/GoofCord/releases/latest) page.  
-  Choose `GoofCord-Setup-<YOUR ARCHITECTURE>.exe` for an installer, or  
-  `GoofCord-<VERSION>-win-<YOUR ARCHITECTURE>.zip` to manually unpack into a directory of your choice.
-- Install using **winget**: `winget install GoofCord`
-- Install using **Scoop**: `scoop install extras/goofcord`
+## The promise: pure ASCII, at all costs
 
-### Linux 🐧
+The core idea of this patchset is paranoid simplicity: **if a byte isn't
+printable ASCII (0x20-0x7E), I don't trust it near you.** Unicode is gorgeous and
+it is also the single richest source of client-side trickery in a chat app --
+homoglyph impersonation, right-to-left override spoofing, zalgo overflow,
+invisible/zero-width payloads, and font-rendering exploits all ride in on
+non-ASCII codepoints.
 
-- Install with prebuilt binaries from the [releases](https://github.com/Milkshiift/GoofCord/releases/latest) page.
-- Install from [Flathub](https://flathub.org/apps/io.github.milkshiift.GoofCord)
-- Install from [AUR](https://aur.archlinux.org/packages/goofcord-bin) if you run an **Arch**-based OS. Here's an example using yay:  
-  `yay -S goofcord-bin`  
-  Keep in mind that the AUR package is not maintained by the developers of GoofCord.
-- Install in **NixOS** from [nixpkgs](https://search.nixos.org/packages?channel=unstable&query=goofcord).
+So GoofCord itself was swept clean too: every emoji, smart-quote, em-dash and
+decorative glyph in the app's own UI, badges, and English strings was replaced
+with an ASCII equivalent. The client that guards you does not get to be a
+hypocrite.
 
-### macOS 🍏
+---
 
-Note: As I don't have a macOS device, macOS support is limited.
+## Mitigations (the Privacy tab)
 
-- Install with prebuilt binaries from the [releases](https://github.com/Milkshiift/GoofCord/releases/latest) page.  
-  Choose the file ending with `mac-arm64.dmg` if your computer uses an Apple Silicon processor. [Mac computers with Apple Silicon](https://support.apple.com/en-us/HT211814)  
-  Otherwise, choose the file that ends with `mac-x64.dmg`
-- If you get an error like "GoofCord is damaged and can't be opened" see [this issue](https://github.com/Milkshiift/GoofCord/issues/7)
-- If GoofCord is crashing on launch, run this command: `xattr -cr /Applications/GoofCord.app && codesign --force --deep --sign - /Applications/GoofCord.app`
+### ASCII-only names  -- default: ON
+Any username, display name, or server nickname containing a non-ASCII character
+is replaced with that user's numeric Discord ID. Enforced at the data layer
+(wrapping `UserStore`/`GuildMemberStore`), so it covers chat, the member list,
+mentions, and replies.
 
-To explore plugins and themes, head over to the Vencord category in the Discord settings.
+**Why:** Names are the prime target for impersonation. A homoglyph (Cyrillic "a"
+for Latin "a"), an RTL-override that reverses how a name reads, or zalgo that
+blows out the layout -- all of it dies here. A raw ID is ugly. It is also
+impossible to forge into someone you trust.
 
-### Building from source 🔧
+### ASCII-only messages  -- default: ON
+A message whose text contains any non-ASCII character is dropped entirely. It
+never renders -- not in live chat, loaded history, or search results. Runs
+*after* emote handling so a converted emote does not get a message hidden.
 
-1. Install [Bun](https://bun.sh).
-2. Download the source code from the latest release. Getting it from the main branch is not recommended for a stable experience.
-3. Open a command line in the directory of the source code
-4. Install the dependencies with `bun install`
-5. Package GoofCord with either `bun run packageWindows`, `bun run packageLinux` or `bun run packageMac`
-6. Find the compiled app in the `dist` folder.
+**Why:** Message bodies are attacker-controlled strings. Non-ASCII content is
+where unicode-based payloads, homoglyph phishing links, and zalgo live. If it
+can't be typed on a 1980s keyboard, you don't need to see it.
 
-## Short FAQ
+### Disable emotes  -- default: ON
+Emote images are never shown. Custom emote tokens (`<:name:123>`) are rewritten
+inline to `:name:` when the name is plain ASCII, or to the numeric emote **ID**
+when the name contains anything else. Emote reactions under messages are hidden
+too. This is pure string handling -- no Discord internals are called on message
+content (an earlier "convert emoji to its real name" approach was removed
+precisely because it ran engine code against hostile input on every message).
 
-### Need Support? Join Our Discord!
+**Why:** Emotes are remote images fetched from a CDN -- a tracking beacon and an
+image-decoder attack surface in one. Reducing them to text removes the image
+fetch and the parser entirely while still telling you what was sent.
 
-[![](https://dcbadge.limes.pink/api/server/CZc4bpnjmm)](https://discord.gg/CZc4bpnjmm)
+### Hide profile pictures  -- default: OFF
+Hides all user avatars everywhere via injected CSS.
 
-### Where is the long FAQ?
+**Why:** Avatars are another stream of attacker-supplied images decoded by your
+client. Defense-in-depth against malicious image payloads and load-time
+tracking. Off by default because for most people the risk/annoyance trade isn't
+worth it -- but it's one click away when you want the blast doors down.
 
-- [On the Wiki](https://github.com/Milkshiift/GoofCord/wiki/FAQ)
+### Block everyone (whitelist mode)  -- default: OFF
+When on, messages and typing indicators from everyone except whitelisted user
+IDs are dropped. Your own messages always show. IDs go in the **User whitelist**
+list.
 
-### How do I develop GoofCord?
+**Why:** The strongest mitigation is not seeing untrusted input at all. This is
+for when you only want the handful of people who matter, and the rest of the
+world can shout into a void.
 
-- See the development [guide](https://github.com/Milkshiift/GoofCord/wiki/How-to-develop-GoofCord)
+### Voice bandpass filter  -- default: ON, 80 Hz - 15 kHz, adjustable
+Both your microphone *and* incoming voice audio are routed through a
+highpass + lowpass biquad chain. Cutoffs are adjustable in Settings and apply
+live to active calls.
 
-### Can I get banned from using GoofCord?
+**Why:** Human speech lives roughly in this band. Energy outside it is, at best,
+useless, and at worst a carrier for side-channel content (see the threat vector
+below). Clamping the band keeps voice intelligible while throwing away the parts
+of the spectrum an attacker would actually want.
 
-- While using GoofCord goes against the [Discord ToS](https://discord.com/terms#software-in-discord%E2%80%99s-services), there are no known bans from using it or any client mods.
+---
 
-### How can I access the settings? ⚙️
+## A threat vector I think about: your mouse, through your microphone
 
-- Multiple ways:
-  - Right-click on the tray icon and click `Open Settings`
-  - Click the "Settings" button in the "GoofCord" category in the Discord settings
-  - Press `Ctrl+Shift+'` shortcut.
+This is hypothetical, but it has been demonstrated in the wild, so I will not
+pretend it away.
 
-### Why Electron?
+A computer mouse reports its position at a fixed **polling rate** (125 Hz up to
+8000 Hz on modern gaming mice). That polling is a periodic electrical signal,
+and a mouse is a cheap peripheral -- **poorly shielded, if shielded at all.**
+Its USB cable, its internal traces, and the host's USB bus all radiate. When an
+unshielded microphone (or its cable, or its preamp) sits close by, that periodic
+interference can **couple into the audio path** -- bleeding a tone, and the
+modulation riding on it, into what your mic captures and transmits.
 
-- It's the right tool for this job. While Electron may not be the perfect choice for all applications, achieving a user experience on par with the official Discord client inherently requires embedding its web version within a browser/webview. Currently, no other frameworks come close to Electron in providing this capability and covering all of GoofCord's needs.
+The unsettling part: your mouse movements are correlated with what you are
+doing. A motivated listener analyzing your outgoing audio could, in principle,
+pull a faint, structured artifact out of it that tracks your cursor -- a leak you
+never spoke.
 
-### Check out our [wiki](https://github.com/Milkshiift/GoofCord/wiki) if you've got questions left
+**How this patchset and your habits push back:**
 
-## Donations
+1. **Bandpass first.** High polling rates put their fundamental and harmonics
+   well above the voice band. The default 80 Hz - 15 kHz filter already attenuates
+   a lot of that. If you suspect bleed, **tighten the band** -- pull the high
+   cutoff down toward 12 kHz or lower, and the low cutoff up toward 120 Hz -- to
+   carve out whatever interference tone you can identify. The cutoffs are there
+   to be tuned, not admired.
 
-If you like GoofCord, you can support me with crypto:
+2. **Lower your mouse polling rate for everyday use.** 125-250 Hz is plenty for
+   browsing, chatting, and working, and it drops the interference fundamental
+   down where it is easier to handle (and produces far less harmonic energy up
+   the spectrum). Most mouse software and many Linux tools let you set this.
 
-- **XMR (Monero)**: `44FyEbizgCbCaghrtCp2BGQ7WZcNRkwAMNEf9fUzgu6A3wmQq8yqrHiAMu2jT784k6NcSByJUApk8jMREMmUJQeu9g6Dxbq`
-- **USDT (Arbitrum/BEP20)**: `0xcacf4a4089c5a68657f2b39d8935a1ec01f999b8`
-- **BTC**: `3PRgLrYWzojWHur8WKKNRwpXwzG6J5Zf3K`
+3. **Only raise the polling rate when you are actually gaming**, then drop it
+   back down. Treat 1000-8000 Hz as a tool you pick up for the task and put away
+   after -- not a thing left running while you are on a call.
+
+4. Physically, if you can: keep the mouse and its cable away from the mic and
+   mic cable, and use a shielded/balanced mic where possible. The filter is the
+   last line; distance and shielding are the first.
+
+5. **Keep a messy desk.** This sounds like a joke. It is not. Coupling like this
+   falls off fast with distance and is wrecked by anything that adds separation
+   or breaks a clean, repeatable cable geometry. A cluttered desk -- cables
+   routed chaotically, the mouse and mic buried among other objects, nothing
+   sitting in a tidy fixed arrangement -- raises the average distance between the
+   noisy peripheral and the mic, randomizes their relative position from session
+   to session, and litters the EM environment with other conductors that absorb
+   and scatter stray fields. A neat, minimalist setup with the mouse parked
+   inches from an exposed mic on a bare surface is the *ideal* case for the
+   attacker. Deny them that. Let it be a mess. I find the chaos comforting
+   anyway -- it means no one has been here arranging your things.
+
+None of this is a guarantee. It is layered odds-shifting -- which is the whole
+spirit of this fork. I cannot make the world safe. I can make it very, very hard
+for anything you didn't ask for to reach you.
+
+---
+
+## Build
+
+This fork builds with [Bun](https://bun.sh):
+
+```
+bun install
+bun run build      # generators + typecheck + bundle renderer assets
+bun run start      # dev build + launch
+bun run lint       # oxlint --type-aware
+```
+
+The Privacy features live in:
+
+- `src/windows/main/renderer/postVencord/contentFilters.ts` -- names, messages, emotes, avatars, whitelist
+- `src/windows/main/renderer/preVencord/audioBandpass.ts` -- mic + incoming voice bandpass
+- `src/settingsSchema.ts` -- the Privacy category and defaults
+- `src/migration.ts` -- repoints stored asset URLs to this fork
+
+After changing renderer code, commit and push so the runtime asset downloader
+fetches the updated `assets/preVencord.js` / `assets/postVencord.js` from this
+repo. For local iteration without pushing, point the External Assets entries at
+absolute local paths instead.
+
+---
+
+## Credit
+
+Built on [GoofCord](https://github.com/Milkshiift/GoofCord) by MilkShift, which
+is itself based on [Legcord](https://github.com/Legcord/Legcord). All upstream
+licensing (OSL-3.0) applies. This fork only adds the hardening patchset
+described above.

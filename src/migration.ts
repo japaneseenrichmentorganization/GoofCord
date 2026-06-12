@@ -3,6 +3,8 @@ import { cleanUpConfig, getConfig, getConfigRaw, getDefaultValue, setConfig } fr
 import { getVersion } from "@root/src/utils.ts";
 
 export async function runMigrations() {
+	await migrateAssetUrlsToFork();
+
 	const currentVersion = getVersion();
 	const lastRunVersion = getConfigRaw("version");
 
@@ -33,6 +35,29 @@ export async function runMigrations() {
 		await cleanUpConfig();
 
 		await setConfig("version", currentVersion);
+	}
+}
+
+// This fork ships its own preVencord/postVencord scripts (content filters, audio bandpass).
+// Configs created by upstream GoofCord still point at Milkshiift's scripts, which would
+// overwrite the fork's features on every asset update.
+async function migrateAssetUrlsToFork() {
+	const assets = { ...(getConfig("assets") as Record<string, string>) };
+	let changed = false;
+
+	for (const [name, file] of [
+		["PreVencord", "preVencord.js"],
+		["PostVencord", "postVencord.js"],
+	]) {
+		if (assets[name]?.startsWith("https://raw.githubusercontent.com/Milkshiift/GoofCord/")) {
+			assets[name] = `https://raw.githubusercontent.com/japaneseenrichmentorganization/GoofCord/refs/heads/main/assets/${file}`;
+			changed = true;
+		}
+	}
+
+	if (changed) {
+		console.log("Migrating PreVencord/PostVencord asset URLs to the fork");
+		await setConfig("assets", assets);
 	}
 }
 

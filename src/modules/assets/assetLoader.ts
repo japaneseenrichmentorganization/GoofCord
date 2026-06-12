@@ -101,7 +101,7 @@ export async function categorizeAllAssets() {
 		if (missingItems.length > 0) {
 			console.error(LOG_PREFIX, "Critical assets missing:", missingItems.join(", "));
 
-			const missingList = missingItems.map((item) => `• ${item}`).join("\n");
+			const missingList = missingItems.map((item) => `- ${item}`).join("\n");
 
 			if (!getConfig("dontShowMissingAssetsWarning")) {
 				void dialog

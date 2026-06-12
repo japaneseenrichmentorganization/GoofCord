@@ -12,7 +12,7 @@ import type { isVenbindLoaded as ___modules_native_venbind_isVenbindLoaded, setK
 import type { getDisplayVersion as ___utils_getDisplayVersion, getVersion as ___utils_getVersion, isEncryptionAvailable as ___utils_isEncryptionAvailable, saveFileToGCFolder as ___utils_saveFileToGCFolder } from "../utils";
 import type { createQuickCssWindow as ___windows_main_quickCssFix_createQuickCssWindow } from "../windows/main/quickCssFix";
 import type { deleteCloud as ___windows_settings_cloud_cloud_deleteCloud, loadCloud as ___windows_settings_cloud_cloud_loadCloud, saveCloud as ___windows_settings_cloud_cloud_saveCloud } from "../windows/settings/cloud/cloud";
-import type { createSettingsWindow as ___windows_settings_settings_createSettingsWindow, hotreloadLocale as ___windows_settings_settings_hotreloadLocale, invidiousConfigChanged as ___windows_settings_settings_invidiousConfigChanged, openFolder as ___windows_settings_settings_openFolder, reloadWindow as ___windows_settings_settings_reloadWindow } from "../windows/settings/settings";
+import type { createSettingsWindow as ___windows_settings_settings_createSettingsWindow, filtersConfigChanged as ___windows_settings_settings_filtersConfigChanged, hotreloadLocale as ___windows_settings_settings_hotreloadLocale, invidiousConfigChanged as ___windows_settings_settings_invidiousConfigChanged, openFolder as ___windows_settings_settings_openFolder, reloadWindow as ___windows_settings_settings_reloadWindow } from "../windows/settings/settings";
 
 export interface IpcHandleChannels {
   "arrpc:initArrpc": typeof ___modules_arrpc_arrpc_initArrpc;
@@ -27,6 +27,7 @@ export interface IpcHandleChannels {
   "patchcord:stopPatchcord": typeof ___modules_native_patchcord_stopPatchcord;
   "quickCssFix:createQuickCssWindow": typeof ___windows_main_quickCssFix_createQuickCssWindow;
   "settings:createSettingsWindow": typeof ___windows_settings_settings_createSettingsWindow;
+  "settings:filtersConfigChanged": typeof ___windows_settings_settings_filtersConfigChanged;
   "settings:hotreloadLocale": typeof ___windows_settings_settings_hotreloadLocale;
   "settings:invidiousConfigChanged": typeof ___windows_settings_settings_invidiousConfigChanged;
   "settings:openFolder": typeof ___windows_settings_settings_openFolder;

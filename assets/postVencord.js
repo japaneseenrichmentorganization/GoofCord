@@ -7,6 +7,202 @@ function initKeybinds() {
   });
 }
 
+// src/windows/main/renderer/postVencord/contentFilters.ts
+var NON_ASCII = /[^\x20-\x7E]/;
+var AVATAR_STYLE_ID = "goofcord-hide-avatars";
+var EMOTE_STYLE_ID = "goofcord-text-emotes";
+var CUSTOM_EMOTE = /<a?:([^:<>]+):(\d+)>/g;
+var asciiOnlyNames = false;
+var disableEmotes = false;
+var asciiOnlyMessages = false;
+var hideAvatars = false;
+var whitelistMode = false;
+var userWhitelist = [];
+var storesPatched = false;
+var dispatchPatched = false;
+function loadFilterConfig() {
+  asciiOnlyNames = GoofCord.getConfig("asciiOnlyNames");
+  disableEmotes = GoofCord.getConfig("disableEmotes");
+  asciiOnlyMessages = GoofCord.getConfig("asciiOnlyMessages");
+  hideAvatars = GoofCord.getConfig("hideAvatars");
+  whitelistMode = GoofCord.getConfig("whitelistMode");
+  userWhitelist = GoofCord.getConfig("userWhitelist") ?? [];
+}
+function initContentFilters() {
+  loadFilterConfig();
+  window.goofcord.onFiltersConfigChanged(() => {
+    loadFilterConfig();
+    applyAvatarStyle();
+    applyEmoteStyle();
+    patchStoresIfNeeded();
+    patchDispatchIfNeeded();
+  });
+  applyAvatarStyle();
+  applyEmoteStyle();
+  patchStoresIfNeeded();
+  patchDispatchIfNeeded();
+}
+function emotesToText(content) {
+  return content.replace(CUSTOM_EMOTE, (_match, name, id) => NON_ASCII.test(name) ? id : `:${name}:`);
+}
+function sanitizeUser(user) {
+  if (!asciiOnlyNames || !user?.id)
+    return user;
+  if (typeof user.username === "string" && NON_ASCII.test(user.username))
+    user.username = user.id;
+  if (typeof user.globalName === "string" && NON_ASCII.test(user.globalName))
+    user.globalName = user.id;
+  if (typeof user.global_name === "string" && NON_ASCII.test(user.global_name))
+    user.global_name = user.id;
+  return user;
+}
+function sanitizeMember(member) {
+  if (!asciiOnlyNames || !member)
+    return member;
+  if (typeof member.nick === "string" && NON_ASCII.test(member.nick))
+    member.nick = member.userId ?? member.user?.id ?? "";
+  return member;
+}
+function patchStoresIfNeeded() {
+  if (storesPatched || !asciiOnlyNames)
+    return;
+  storesPatched = true;
+  const UserStore = VC.Webpack.findStore("UserStore");
+  const GuildMemberStore = VC.Webpack.findStore("GuildMemberStore");
+  if (UserStore) {
+    const origGetUser = UserStore.getUser;
+    UserStore.getUser = function(...args) {
+      return sanitizeUser(origGetUser.apply(this, args));
+    };
+    const origGetUsers = UserStore.getUsers;
+    if (origGetUsers) {
+      UserStore.getUsers = function(...args) {
+        const users = origGetUsers.apply(this, args);
+        if (users && asciiOnlyNames) {
+          for (const id of Object.keys(users))
+            sanitizeUser(users[id]);
+        }
+        return users;
+      };
+    }
+  }
+  if (GuildMemberStore) {
+    const origGetMember = GuildMemberStore.getMember;
+    GuildMemberStore.getMember = function(...args) {
+      return sanitizeMember(origGetMember.apply(this, args));
+    };
+    const origGetNick = GuildMemberStore.getNick;
+    if (origGetNick) {
+      GuildMemberStore.getNick = function(guildId, userId) {
+        const nick = origGetNick.call(this, guildId, userId);
+        if (asciiOnlyNames && typeof nick === "string" && NON_ASCII.test(nick))
+          return userId;
+        return nick;
+      };
+    }
+  }
+}
+function isUserAllowed(userId) {
+  if (!whitelistMode)
+    return true;
+  if (!userId)
+    return false;
+  if (userId === Common.UserStore?.getCurrentUser?.()?.id)
+    return true;
+  return userWhitelist.includes(userId);
+}
+function processMessage(msg) {
+  if (!msg)
+    return true;
+  sanitizeUser(msg.author);
+  if (msg.referenced_message)
+    processMessage(msg.referenced_message);
+  for (const u of msg.mentions ?? [])
+    sanitizeUser(u);
+  if (disableEmotes && typeof msg.content === "string")
+    msg.content = emotesToText(msg.content);
+  if (asciiOnlyMessages && typeof msg.content === "string" && NON_ASCII.test(msg.content))
+    return false;
+  return isUserAllowed(msg.author?.id);
+}
+function patchDispatchIfNeeded() {
+  if (dispatchPatched || !whitelistMode && !asciiOnlyNames && !asciiOnlyMessages && !disableEmotes)
+    return;
+  dispatchPatched = true;
+  const originalDispatch = Common.FluxDispatcher.dispatch;
+  Common.FluxDispatcher.dispatch = function(payload) {
+    try {
+      if (!handleDispatch(payload))
+        return Promise.resolve();
+    } catch (err) {
+      console.error("[Content Filters] Error in dispatch handler:", err);
+    }
+    return originalDispatch.call(this, payload);
+  };
+}
+function handleDispatch(dispatch) {
+  switch (dispatch.type) {
+    case "MESSAGE_CREATE":
+    case "MESSAGE_UPDATE":
+      return processMessage(dispatch.message);
+    case "TYPING_START":
+      return isUserAllowed(dispatch.userId);
+    case "LOAD_MESSAGES_SUCCESS":
+      if (Array.isArray(dispatch.messages)) {
+        dispatch.messages = dispatch.messages.filter((msg) => processMessage(msg));
+      }
+      break;
+    case "SEARCH_FINISH":
+    case "MOD_VIEW_SEARCH_FINISH":
+      if (Array.isArray(dispatch.messages)) {
+        dispatch.messages = dispatch.messages.map((group) => Array.isArray(group) ? group.filter((msg) => processMessage(msg)) : group).filter((group) => !Array.isArray(group) || group.length > 0);
+      }
+      break;
+  }
+  return true;
+}
+function applyAvatarStyle() {
+  let style = document.getElementById(AVATAR_STYLE_ID);
+  if (!hideAvatars) {
+    style?.remove();
+    return;
+  }
+  if (!style) {
+    style = document.createElement("style");
+    style.id = AVATAR_STYLE_ID;
+    document.head.appendChild(style);
+  }
+  style.textContent = `
+		img[class*="avatar"],
+		svg[class*="avatar"] foreignObject img,
+		img[src*="cdn.discordapp.com/avatars/"],
+		img[src*="cdn.discordapp.com/guilds/"][src*="/users/"],
+		img[src*="cdn.discordapp.com/embed/avatars/"],
+		div[class*="avatar"][style*="background-image"] {
+			visibility: hidden !important;
+		}
+	`;
+}
+function applyEmoteStyle() {
+  let style = document.getElementById(EMOTE_STYLE_ID);
+  if (!disableEmotes) {
+    style?.remove();
+    return;
+  }
+  if (!style) {
+    style = document.createElement("style");
+    style.id = EMOTE_STYLE_ID;
+    document.head.appendChild(style);
+  }
+  style.textContent = `
+		img[class*="emoji"],
+		img[src*="cdn.discordapp.com/emojis/"],
+		div[class*="reactions"] {
+			display: none !important;
+		}
+	`;
+}
+
 // src/windows/main/renderer/postVencord/dynamicIcon.ts
 var GuildReadStateStore;
 var RelationshipStore;
@@ -337,7 +533,7 @@ function initSettingsButton() {
       layout.unshift({
         key: "goofcord_section",
         type: LayoutTypes.SECTION,
-        useTitle: () => "✨GoofCord✨",
+        useTitle: () => "GoofCord",
         buildLayout: () => [
           {
             type: LayoutTypes.SIDEBAR_ITEM,
@@ -379,6 +575,6 @@ function runSafe(tasks) {
 async function init() {
   runSafe([updateInvidiousInstance, initRichPresence]);
   await VC.Webpack.onceReady;
-  runSafe([initDynamicIcon, patchScreenshare, initSettingsButton, initMessageEncryption, initQuickCssFix, initKeybinds]);
+  runSafe([initDynamicIcon, patchScreenshare, initSettingsButton, initMessageEncryption, initQuickCssFix, initKeybinds, initContentFilters]);
 }
 init();

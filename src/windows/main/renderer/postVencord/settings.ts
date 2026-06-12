@@ -23,7 +23,7 @@ export function initSettingsButton() {
 			layout.unshift({
 				key: "goofcord_section",
 				type: LayoutTypes.SECTION,
-				useTitle: () => "✨GoofCord✨",
+				useTitle: () => "GoofCord",
 				// @ts-expect-error
 				buildLayout: () => [
 					{

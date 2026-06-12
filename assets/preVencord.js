@@ -153,14 +153,141 @@ var titlebar_default = definePatch({
   ]
 });
 
-// glob-plugin:eyJjb21tYW5kIjoiaW1wb3J0IiwiZ2xvYlBhdHRlcm4iOiIuL3BhdGNoZXMvKiovKi50cyIsImltcG9ydGVyIjoiL2hvbWUvdGNwLXByb3RvY29sL1Byb2dyYW1taW5nL0dvb2ZDb3JkL3NyYy93aW5kb3dzL21haW4vcmVuZGVyZXIvcHJlVmVuY29yZC9wcmVWZW5jb3JkLnRzIn0
-var eyJjb21tYW5kIjoiaW1wb3J0IiwiZ2xvYlBhdHRlcm4iOiIuL3BhdGNoZXMvKiovKi50cyIsImltcG9ydGVyIjoiL2hvbWUvdGNwLXByb3RvY29sL1Byb2dyYW1taW5nL0dvb2ZDb3JkL3NyYy93aW5kb3dzL21haW4vcmVuZGVyZXIvcHJlVmVuY29yZC9wcmVWZW5jb3JkLnRzIn0_default = {
+// glob-plugin:eyJjb21tYW5kIjoiaW1wb3J0IiwiZ2xvYlBhdHRlcm4iOiIuL3BhdGNoZXMvKiovKi50cyIsImltcG9ydGVyIjoiL2hvbWUvYmx1YnNreWUvR29vZkNvcmQvc3JjL3dpbmRvd3MvbWFpbi9yZW5kZXJlci9wcmVWZW5jb3JkL3ByZVZlbmNvcmQudHMifQ
+var eyJjb21tYW5kIjoiaW1wb3J0IiwiZ2xvYlBhdHRlcm4iOiIuL3BhdGNoZXMvKiovKi50cyIsImltcG9ydGVyIjoiL2hvbWUvYmx1YnNreWUvR29vZkNvcmQvc3JjL3dpbmRvd3MvbWFpbi9yZW5kZXJlci9wcmVWZW5jb3JkL3ByZVZlbmNvcmQudHMifQ_default = {
   "devtoolsFix.ts": devtoolsFix_default,
   "invidiousEmbeds.ts": invidiousEmbeds_default,
   "keybinds.ts": keybinds_default,
   "screenshare.ts": screenshare_default,
   "titlebar.ts": titlebar_default
 };
+
+// src/windows/main/renderer/preVencord/audioBandpass.ts
+var audioCtx = null;
+var activeChains = new Set;
+var remoteCache = new WeakMap;
+function isEnabled() {
+  return window.goofcord.getConfig("audioBandpass");
+}
+function getCutoffs() {
+  const low = Number.parseFloat(window.goofcord.getConfig("bandpassLowHz"));
+  const high = Number.parseFloat(window.goofcord.getConfig("bandpassHighHz"));
+  return [Number.isFinite(low) && low > 0 ? low : 80, Number.isFinite(high) && high > 0 ? high : 15000];
+}
+function getContext() {
+  if (!audioCtx)
+    audioCtx = new AudioContext;
+  if (audioCtx.state === "suspended")
+    audioCtx.resume();
+  return audioCtx;
+}
+function createChain(stream) {
+  const ctx = getContext();
+  const [low, high] = getCutoffs();
+  const source = ctx.createMediaStreamSource(stream);
+  const highpass = ctx.createBiquadFilter();
+  highpass.type = "highpass";
+  highpass.frequency.value = low;
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = "lowpass";
+  lowpass.frequency.value = high;
+  const destination = ctx.createMediaStreamDestination();
+  source.connect(highpass);
+  highpass.connect(lowpass);
+  lowpass.connect(destination);
+  const chain = { highpass, lowpass };
+  activeChains.add(chain);
+  const output = destination.stream;
+  for (const track of stream.getVideoTracks())
+    output.addTrack(track);
+  for (const track of stream.getAudioTracks()) {
+    track.addEventListener("ended", () => {
+      if (stream.getAudioTracks().every((t) => t.readyState === "ended")) {
+        source.disconnect();
+        activeChains.delete(chain);
+      }
+    });
+  }
+  return { output, chain };
+}
+function filterMicStream(stream) {
+  const { output } = createChain(stream);
+  const originalTrack = stream.getAudioTracks()[0];
+  const filteredTrack = output.getAudioTracks()[0];
+  if (originalTrack && filteredTrack) {
+    const origStop = filteredTrack.stop.bind(filteredTrack);
+    filteredTrack.stop = () => {
+      origStop();
+      originalTrack.stop();
+    };
+    filteredTrack.applyConstraints = (constraints) => originalTrack.applyConstraints(constraints);
+    filteredTrack.getSettings = () => originalTrack.getSettings();
+    filteredTrack.getCapabilities = () => originalTrack.getCapabilities();
+  }
+  return output;
+}
+function filterRemoteStream(stream) {
+  const cached = remoteCache.get(stream);
+  if (cached)
+    return cached;
+  const { output } = createChain(stream);
+  const primer = new Audio;
+  primer.muted = true;
+  originalSrcObjectSetter.call(primer, stream);
+  output.__goofcordPrimer = primer;
+  remoteCache.set(stream, output);
+  return output;
+}
+var srcObjectDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "srcObject");
+var originalSrcObjectSetter = srcObjectDescriptor?.set;
+function patchSrcObject() {
+  if (!srcObjectDescriptor?.set || !srcObjectDescriptor.get)
+    return;
+  Object.defineProperty(HTMLMediaElement.prototype, "srcObject", {
+    configurable: true,
+    enumerable: srcObjectDescriptor.enumerable,
+    get: srcObjectDescriptor.get,
+    set(value) {
+      if (value instanceof MediaStream && value.getAudioTracks().length > 0 && isEnabled()) {
+        try {
+          originalSrcObjectSetter.call(this, filterRemoteStream(value));
+          return;
+        } catch (err) {
+          console.error("[Audio Bandpass] Failed to filter incoming stream:", err);
+        }
+      }
+      originalSrcObjectSetter.call(this, value);
+    }
+  });
+}
+function patchGetUserMedia() {
+  const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia = async (constraints) => {
+    const stream = await originalGetUserMedia(constraints);
+    if (!constraints?.audio || !isEnabled())
+      return stream;
+    try {
+      return filterMicStream(stream);
+    } catch (err) {
+      console.error("[Audio Bandpass] Failed to filter microphone stream:", err);
+      return stream;
+    }
+  };
+}
+function updateActiveChains() {
+  const [low, high] = getCutoffs();
+  const enabled = isEnabled();
+  const ctx = audioCtx;
+  for (const { highpass, lowpass } of activeChains) {
+    highpass.frequency.value = enabled ? low : 0;
+    lowpass.frequency.value = enabled ? high : ctx ? ctx.sampleRate / 2 : 24000;
+  }
+}
+function startAudioBandpass() {
+  patchGetUserMedia();
+  patchSrcObject();
+  window.goofcord.onFiltersConfigChanged(updateActiveChains);
+}
 
 // src/windows/main/renderer/preVencord/domOptimizer.ts
 function startDomOptimizer() {
@@ -198,8 +325,9 @@ function fixNotifications() {
 
 // src/windows/main/renderer/preVencord/preVencord.ts
 if (window.goofcord.isVencordPresent()) {
-  const patches = Object.values(eyJjb21tYW5kIjoiaW1wb3J0IiwiZ2xvYlBhdHRlcm4iOiIuL3BhdGNoZXMvKiovKi50cyIsImltcG9ydGVyIjoiL2hvbWUvdGNwLXByb3RvY29sL1Byb2dyYW1taW5nL0dvb2ZDb3JkL3NyYy93aW5kb3dzL21haW4vcmVuZGVyZXIvcHJlVmVuY29yZC9wcmVWZW5jb3JkLnRzIn0_default);
+  const patches = Object.values(eyJjb21tYW5kIjoiaW1wb3J0IiwiZ2xvYlBhdHRlcm4iOiIuL3BhdGNoZXMvKiovKi50cyIsImltcG9ydGVyIjoiL2hvbWUvYmx1YnNreWUvR29vZkNvcmQvc3JjL3dpbmRvd3MvbWFpbi9yZW5kZXJlci9wcmVWZW5jb3JkL3ByZVZlbmNvcmQudHMifQ_default);
   loadPatches(patches);
 }
 fixNotifications();
 startDomOptimizer();
+startAudioBandpass();

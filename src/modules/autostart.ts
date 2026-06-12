@@ -13,7 +13,7 @@ const APP_CLI_NAME = "goofcord";
 const AUTOSTART_DIR = path.join(os.homedir(), ".config", "autostart");
 const DESKTOP_FILE_PATH = path.join(AUTOSTART_DIR, `${APP_NAME}.desktop`);
 
-// ─── Helpers ─────────────────────────────────────────────────────
+// --- Helpers -----------------------------------------------------
 
 async function fileExists(filePath: string): Promise<boolean> {
 	try {
@@ -29,16 +29,16 @@ async function fileExists(filePath: string): Promise<boolean> {
 //
 function escapeExecPath(execPath: string): string {
 	const escaped = execPath
-		.replace(/\\/g, "\\\\\\\\") // \    → \\\\
-		.replace(/"/g, '\\\\"') // "    → \\"
-		.replace(/`/g, "\\\\`") // `    → \\`
-		.replace(/\$/g, "\\\\$") // $    → \\$
-		.replace(/%/g, "%%"); // %    → %%
+		.replace(/\\/g, "\\\\\\\\") // \    -> \\\\
+		.replace(/"/g, '\\\\"') // "    -> \\"
+		.replace(/`/g, "\\\\`") // `    -> \\`
+		.replace(/\$/g, "\\\\$") // $    -> \\$
+		.replace(/%/g, "%%"); // %    -> %%
 
 	return `"${escaped}"`;
 }
 
-// ─── Linux ───────────────────────────────────────────────────────
+// --- Linux -------------------------------------------------------
 
 function getLinuxExecCommand(): string {
 	// 1. Flatpak
@@ -83,13 +83,13 @@ async function disableLinux(): Promise<void> {
 	}
 }
 
-// ─── macOS / Windows ─────────────────────────────────────────────
+// --- macOS / Windows ---------------------------------------------
 
 function setNativeAutostart(enabled: boolean): void {
 	app.setLoginItemSettings({ openAtLogin: enabled });
 }
 
-// ─── Public API ──────────────────────────────────────────────────
+// --- Public API --------------------------------------------------
 
 export async function setAutostart<IPCHandle>(): Promise<void> {
 	const enabled = getConfig("launchWithOsBoot");

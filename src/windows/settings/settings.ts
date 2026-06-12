@@ -23,6 +23,10 @@ export async function invidiousConfigChanged<IPCHandle>() {
 	mainWindow.webContents.send("invidiousConfigChanged");
 }
 
+export async function filtersConfigChanged<IPCHandle>() {
+	mainWindow.webContents.send("filtersConfigChanged");
+}
+
 function hasConfigChanged(original: Config, current: Config): boolean {
 	return !isDeepStrictEqual(original, current);
 }

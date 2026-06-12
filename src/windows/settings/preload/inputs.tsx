@@ -75,7 +75,7 @@ function ListInput({ id, value, onChange }: InputProps): JSX.Element {
 					<div key={idx} class="dictionary-row">
 						<input type="text" class="list-value" value={item} onChange={(e) => handleItemChange(idx, (e.target as HTMLInputElement).value)} />
 						<button type="button" class="dictionary-remove-btn" onClick={() => handleRemove(idx)}>
-							✕
+							x
 						</button>
 					</div>
 				))}
@@ -158,7 +158,7 @@ function DictionaryInput({ id, value, onChange, entry }: InputProps): JSX.Elemen
 						<input type="text" class="dict-key" placeholder={i("settings-dictionary-key")} value={k} onChange={(e) => handleKeyChange(idx, (e.target as HTMLInputElement).value)} />
 						<input type="text" class="dict-value" placeholder={i("settings-dictionary-value")} value={v} onChange={(e) => handleValueChange(idx, (e.target as HTMLInputElement).value)} />
 						<button type="button" class="dictionary-remove-btn" onClick={() => handleRemove(idx)}>
-							✕
+							x
 						</button>
 					</div>
 				))}

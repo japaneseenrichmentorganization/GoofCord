@@ -10,7 +10,7 @@ import { getErrorMessage, getGoofCordFolderPath, tryCreateFolder } from "../../u
 
 const LOG_PREFIX = pc.yellowBright("[Config]");
 
-// ─── State & Initialization ─────────────────────────────────────────────
+// --- State & Initialization ---------------------------------------------
 
 export let firstLaunch = false;
 let configHost: StoreHost<Config>;
@@ -27,7 +27,7 @@ export async function initConfigEncryption(): Promise<boolean> {
 		await dialog.showMessageBox({
 			type: "warning",
 			title: "Secure storage unavailable",
-			message: "Some sensitive settings (e.g. message encryption passwords) will be stored in plaintext.\n" + (process.platform === "linux" ? "Install and start gnome-keyring or kwallet, then restart the app." : "This is unusual on Windows/macOS — please report the issue."),
+			message: "Some sensitive settings (e.g. message encryption passwords) will be stored in plaintext.\n" + (process.platform === "linux" ? "Install and start gnome-keyring or kwallet, then restart the app." : "This is unusual on Windows/macOS - please report the issue."),
 			detail: `Backend: ${safeStorage.getSelectedStorageBackend() || "unknown"}`,
 		});
 	}
@@ -35,7 +35,7 @@ export async function initConfigEncryption(): Promise<boolean> {
 	if (_encryptionAvailable && process.platform === "linux") {
 		console.log(LOG_PREFIX, `Secure backend: ${safeStorage.getSelectedStorageBackend()}`);
 	} else if (!_encryptionAvailable) {
-		console.warn(LOG_PREFIX, "safeStorage encryption unavailable — using plaintext fallback");
+		console.warn(LOG_PREFIX, "safeStorage encryption unavailable - using plaintext fallback");
 	}
 
 	return _encryptionAvailable;
@@ -57,7 +57,7 @@ async function setup(): Promise<Config> {
 	return defaults;
 }
 
-// ─── Getters ─────────────────────────────────────────────
+// --- Getters ---------------------------------------------
 
 export function getConfig<K extends ConfigKey>(key: K): Config[K] {
 	return configHost.get()[key] ?? getDefaultValue(key);
@@ -75,7 +75,7 @@ export function getDefaultValue<K extends ConfigKey>(entry: K): Config[K] {
 	return getDefaults()[entry] as Config[K];
 }
 
-// ─── Setters ─────────────────────────────────────────────
+// --- Setters ---------------------------------------------
 
 export async function setConfig<K extends ConfigKey>(key: K, value: Config[K]): Promise<void> {
 	const current = configHost.get();
@@ -86,7 +86,7 @@ export async function setConfigBulk(config: Config): Promise<void> {
 	await configHost.set(config);
 }
 
-// ─── Maintenance ─────────────────────────────────────────────
+// --- Maintenance ---------------------------------------------
 
 export async function cleanUpConfig(): Promise<void> {
 	const currentConfig = configHost.get();
@@ -113,7 +113,7 @@ export async function cleanUpConfig(): Promise<void> {
 	}
 }
 
-// ─── Private ─────────────────────────────────────────────
+// --- Private ---------------------------------------------
 
 async function hydrate(): Promise<Config> {
 	while (true) {
@@ -199,7 +199,7 @@ export function decryptSafeStorage(stored: string): any {
 		}
 	}
 
-	throw new Error(`Unknown storage prefix: ${stored.slice(0, 10)}…`);
+	throw new Error(`Unknown storage prefix: ${stored.slice(0, 10)}...`);
 }
 
 async function handleConfigError(e: unknown): Promise<{ retry: boolean; data?: Config }> {

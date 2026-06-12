@@ -53,12 +53,12 @@ function isSemverLower(version1: string, version2: string): boolean {
 		if (a !== b) return a < b;
 	}
 
-	// Main versions are equal → move to pre-release rules
-	if (!p1 && !p2) return false; // both stable → not lower
+	// Main versions are equal -> move to pre-release rules
+	if (!p1 && !p2) return false; // both stable -> not lower
 	if (!p1) return false; // v1 stable > any pre-release
 	if (!p2) return true; // v1 pre-release < stable v2
 
-	// === 2. Both have pre-releases – compare identifiers ===
+	// === 2. Both have pre-releases - compare identifiers ===
 	const pr1 = p1.split(".");
 	const pr2 = p2.split(".");
 

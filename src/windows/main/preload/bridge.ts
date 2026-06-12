@@ -44,6 +44,7 @@ const api = {
 	stopPatchcord: () => invoke("patchcord:stopPatchcord"),
 	isVencordPresent: () => isVencordPresent,
 	onInvidiousConfigChanged: (callback: () => void) => ipcRenderer.on("invidiousConfigChanged", callback),
+	onFiltersConfigChanged: (callback: () => void) => ipcRenderer.on("filtersConfigChanged", callback),
 	openQuickCssWindow: () => invoke("quickCssFix:createQuickCssWindow"),
 };
 

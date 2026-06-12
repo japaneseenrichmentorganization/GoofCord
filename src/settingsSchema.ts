@@ -75,7 +75,7 @@ export const settingsSchema = {
 	General: {
 		version: hidden(packageJson.version),
 		locale: setting("dropdown", {
-			name: "Language 🌍",
+			name: "Language",
 			defaultValue: "en-US",
 			description: 'Controls the UI language of GoofCord, separate from Discord\'s internal language setting. Contribute translations <a target="_blank" href="https://hosted.weblate.org/projects/goofcord/goofcord/">here</a>.',
 			options: allLangs,
@@ -205,6 +205,74 @@ export const settingsSchema = {
 			onChange: "settings:reloadWindow",
 		}),
 	},
+	Privacy: {
+		asciiOnlyNames: setting("checkbox", {
+			name: "ASCII-only names",
+			defaultValue: true,
+			description: "Replaces usernames, display names and nicknames containing non-ASCII characters with the user's Discord ID. Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		disableEmotes: setting("checkbox", {
+			name: "Disable emotes",
+			defaultValue: true,
+			description: "Never shows emote images. Custom emotes are replaced with their name (e.g. :smile:), or the emote ID if the name contains non-ASCII characters. Also hides emote reactions under messages. Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		asciiOnlyMessages: setting("checkbox", {
+			name: "ASCII-only messages",
+			defaultValue: true,
+			description: "Hides messages whose text contains non-ASCII characters. Runs after 'Emotes as text', so converted emotes do not hide a message. Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		hideAvatars: setting("checkbox", {
+			name: "Hide profile pictures",
+			defaultValue: false,
+			description: "Hides user avatars everywhere in Discord.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		whitelistMode: setting("checkbox", {
+			name: "Block everyone (whitelist mode)",
+			defaultValue: false,
+			description: "Hides messages from everyone except whitelisted users. Your own messages are always shown. Reload Discord to fully apply after toggling.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		userWhitelist: setting("list", {
+			name: "User whitelist",
+			defaultValue: [],
+			description: "Discord user IDs whose messages stay visible while whitelist mode is active.",
+			onChange: "settings:filtersConfigChanged",
+			showAfter: {
+				key: "whitelistMode",
+				condition: (value) => value === true,
+			},
+		}),
+		audioBandpass: setting("checkbox", {
+			name: "Voice bandpass filter",
+			defaultValue: true,
+			description: "Filters your microphone and incoming voice audio to the frequency band below. Takes effect on the next voice connection when toggled; cutoff changes apply live.",
+			onChange: "settings:filtersConfigChanged",
+		}),
+		bandpassLowHz: setting("textfield", {
+			name: "Bandpass low cutoff (Hz)",
+			defaultValue: "80",
+			description: "Frequencies below this are attenuated.",
+			onChange: "settings:filtersConfigChanged",
+			showAfter: {
+				key: "audioBandpass",
+				condition: (value) => value === true,
+			},
+		}),
+		bandpassHighHz: setting("textfield", {
+			name: "Bandpass high cutoff (Hz)",
+			defaultValue: "15000",
+			description: "Frequencies above this are attenuated.",
+			onChange: "settings:filtersConfigChanged",
+			showAfter: {
+				key: "audioBandpass",
+				condition: (value) => value === true,
+			},
+		}),
+	},
 	Assets: {
 		assets: setting("dictionary", {
 			name: "External Assets",
@@ -213,14 +281,14 @@ export const settingsSchema = {
 - Do not mix forks of the same mod (e.g., Vencord and Equicord).<br>
 - GoofCord requires a Vencord-based mod, PreVencord and PostVencord for full functionality.`,
 			defaultValue: {
-				PreVencord: "https://raw.githubusercontent.com/Milkshiift/GoofCord/refs/heads/main/assets/preVencord.js",
-				PostVencord: "https://raw.githubusercontent.com/Milkshiift/GoofCord/refs/heads/main/assets/postVencord.js",
+				PreVencord: "https://raw.githubusercontent.com/japaneseenrichmentorganization/GoofCord/refs/heads/main/assets/preVencord.js",
+				PostVencord: "https://raw.githubusercontent.com/japaneseenrichmentorganization/GoofCord/refs/heads/main/assets/postVencord.js",
 				Vencord: "https://github.com/Vendicated/Vencord/releases/download/devbuild/browser.js",
 				VencordStyles: "https://github.com/Vendicated/Vencord/releases/download/devbuild/browser.css",
 			},
 			options: [
-				["PreVencord", "https://raw.githubusercontent.com/Milkshiift/GoofCord/refs/heads/main/assets/preVencord.js"],
-				["PostVencord", "https://raw.githubusercontent.com/Milkshiift/GoofCord/refs/heads/main/assets/postVencord.js"],
+				["PreVencord", "https://raw.githubusercontent.com/japaneseenrichmentorganization/GoofCord/refs/heads/main/assets/preVencord.js"],
+				["PostVencord", "https://raw.githubusercontent.com/japaneseenrichmentorganization/GoofCord/refs/heads/main/assets/postVencord.js"],
 				["Vencord", "https://github.com/Vendicated/Vencord/releases/download/devbuild/browser.js"],
 				["VencordStyles", "https://github.com/Vendicated/Vencord/releases/download/devbuild/browser.css"],
 				["Equicord", "https://github.com/Equicord/Equicord/releases/download/latest/browser.js"],
